@@ -1,0 +1,13 @@
+a(eta,[adulto,anziano,giovane,molto_anziano]).
+a(sesso,[female,male]).
+a(tipo_dolore_toracico,[angina_atipica,angina_tipica,asintomatico,non_anginoso]).
+a(pressione_sanguigna,[ipertensione_grave,ipertensione_lieve,normale,pre_ipertensione]).
+a(colesterolo,[alto,borderline,normale]).
+a(glicemia,[alta,normale]).
+a(classe_rischio,[0,1,2]).
+a(frequenza_cardiaca,[alta,bassa,media]).
+a(angina_da_sforzo,[no,si]).
+a(depressione_ST,[assente,lieve,moderata,severa]).
+a(durata_QRS,[1,2,3]).
+a(pendenza_ST,[0,1,2,3]).
+a(numero_vasi_fluoroscopia,[3,6,7]).

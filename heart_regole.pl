@@ -1,4 +1,3 @@
-% programma per apprendere inducendo Regole e testandone l'efficacia
 
 :- ensure_loaded(heart_attributi).
 :- ensure_loaded(heart_training_set).
@@ -7,39 +6,30 @@
 :- op(300,xfx,<==).
 
 % ================================================================================
-% apprendi(Classe)
-% raccoglie il training set in una lista, costruisce e stampa a schermo
-% una descrizione per la Classe e asserisce la corrispondente Regola
 
 apprendi(Classe) :-
-	findall( e(C,O), e(C,O), Esempi),      % raccoglie  gli Esempi
-	apprendi(Esempi, Classe, Descrizione), % induce la Descrizione della Classe
-	nl,write(Classe),write('<=='),nl,      % la stampa
+	findall( e(C,O), e(C,O), Esempi),     
+	apprendi(Esempi, Classe, Descrizione), 
+	nl,write(Classe),write('<=='),nl,     
 	writelist(Descrizione),
-	assert( Classe <== Descrizione ).      % e la asserisce, ovvero APPRENDE
+	assert( Classe <== Descrizione ).     
 
-% apprendi(Esempi,Classe,Descrizione)
-% Descrizione copre esattamente gli esempi di Classe nella lista Esempi
 
-apprendi( Esempi, Classe, []) :-                % Descrizione vuota perché non ci sono
-	\+ member( e(Classe,_), Esempi ).       % esempi da coprire di quella Classe
+apprendi( Esempi, Classe, []) :-               
+	\+ member( e(Classe,_), Esempi ).      
 apprendi( Esempi, Classe, [Cong|Congi] ) :-
-	apprendi_cong( Esempi, Classe, Cong),   % induce una Cong di coppie Attr=Val che copre
-						% almeno un esempio di Classe e nessun esempio
-						% di una qualunque altra classe
-	rimuovi( Esempi, Cong, RestoEsempi ),   % rimuove gli esempi coperti da Cong
-	apprendi( RestoEsempi, Classe, Congi ). % copre gli esempi rimasti
+	apprendi_cong( Esempi, Classe, Cong),  
+						
+	rimuovi( Esempi, Cong, RestoEsempi ),   
+	apprendi( RestoEsempi, Classe, Congi ). 
 
-% apprendi_cong(Esempi,Classe,Cong)
-% Cong è una lista di coppie Attr=Val soddisfatti da alcuni esempi
-% di Classe e da nessun esempio di un'altra classe
 
 apprendi_cong( Esempi, Classe, []) :-
 	\+ (member( e(Cl,_), Esempi), Cl \== Classe),
-	!.	                               % non ci sono esempi di altre classi
+	!.	                              
 apprendi_cong( Esempi, Cl, [Cond|Conds] ) :-
-	scegli_cond( Esempi, Cl, Cond ),       % sceglie una coppia Attr=Val
-	filtra( Esempi, [Cond], Esempi1 ),     % seleziona in Esempi1 quelli che hanno Attr=Val
+	scegli_cond( Esempi, Cl, Cond ),      
+	filtra( Esempi, [Cond], Esempi1 ),     
 	apprendi_cong( Esempi1, Cl, Conds ).
 
 scegli_cond( Esempi, Classe, AttVal) :-
@@ -53,27 +43,19 @@ best([AV0/S0,AV1/S1|AVSlist],AttVal) :-
 	;
 	best([AV0/S0|AVSlist],AttVal).
 
-% filtra(Esempi,Condizione,Esempi1)
-% Esempi1 contiene elementi di Esempi che soddisfano Condizione
 
 filtra(Esempi,Cond,Esempi1) :-
 	findall(e(Classe,Ogg), (member(e(Classe,Ogg),Esempi),soddisfa(Ogg,Cond)), Esempi1).
 
-% rimuovi(Esempi,Cong,RestoEsempi)
-% rimuove da Esempi quelli coperti da Cong e restituisce Esempi1
 
 rimuovi([],_,[]).
 rimuovi([e(_,Ogg)|Es],Conge,Es1) :-
-	soddisfa(Ogg,Conge), !, % il primo esempio matcha Conge
-	rimuovi(Es,Conge,Es1).  % lo rimuove
+	soddisfa(Ogg,Conge), !, 
+	rimuovi(Es,Conge,Es1).  
 
-rimuovi([E|Es],Conge,[E|Es1]) :- % mantiene il primo esempio
+rimuovi([E|Es],Conge,[E|Es1]) :- 
 	rimuovi(Es,Conge,Es1).
 
-% soddisfa(+Oggetto,+Congiunzione)
-% se, atteso che Oggetto e Congiunzione abbiano almeno un attributo
-% descrittivo in comune, non succeda che compaia lo stesso attributo Att
-% in Oggetto ed in Congiunzione con valori diversi
 
 soddisfa( Oggetto, Congiunzione) :-
 %	hanno_attributo_in_comune(Oggetto,Congiunzione),
@@ -85,26 +67,24 @@ hanno_attributo_in_comune(Oggetto,Congiunzione) :-
 	!.
 
 punteggioAV( Esempi, Classe, AttVal, Punti ) :-
-	candidato( Esempi, Classe, AttVal),  % un attributo/valore adatto
-	filtra(Esempi,[AttVal],Esempi1),  % gli Esempi1 soddisfano la condizione Att=Val
+	candidato( Esempi, Classe, AttVal),  
+	filtra(Esempi,[AttVal],Esempi1), 
 	length(Esempi1,N1),
-	conta_pos(Esempi1,Classe,Npos1),  % numero di esempi positivi
-	Npos1 > 0,                        % almeno un esempio positivo
+	conta_pos(Esempi1,Classe,Npos1),  
+	Npos1 > 0,                       
 	Punti is (Npos1 + 1) / (N1 + 2).
 
 candidato(Esempi,Classe,Att=Val) :-
-	a(Att, Valori),                  % un attributo
-	member(Val,Valori),              % un valore
+	a(Att, Valori),                 
+	member(Val,Valori),             
 	adatto(Att=Val,Esempi,Classe).
 
-% almeno un esempio negativo deve non matchare con AttVal
-adatto(AttVal,Esempi,Classe) :-
-	member(e(ClasseX,OggX),Esempi),	% esempio
-	ClasseX \== Classe,		% negativo
-	\+ soddisfa(OggX,[AttVal]), !.	% non soddisfatto dalla coppia Att=Val
 
-% conta_pos(Esempi,Classe,N)
-% N è il numero degli esempi positivi di Classe
+adatto(AttVal,Esempi,Classe) :-
+	member(e(ClasseX,OggX),Esempi),	
+	ClasseX \== Classe,		
+	\+ soddisfa(OggX,[AttVal]), !.	
+
 
 conta_pos([],_,0).
 conta_pos([e(ClasseX,_)|Esempi],Classe,N) :-
@@ -117,23 +97,18 @@ writelist([X|L]) :-
 	writelist(L).
 
 % ==================================================================================
-% classifica( +Oggetto, -Classe)
-%  Oggetto: [Attributo1=Valore1, .. , AttributoN=ValoreN]
-%  Classe: classe a cui potrebbe appartenere un oggetto caratterizzato da quelle coppie
-%  Attributo=Valore
-% presuppone che sia stata effettuata la classificazione
 
-classifica(Oggetto,Classe) :- % Oggetto descritto da una lista Att=Val appartiene a Classe
-	Classe <== Descrizione, % se Classe è una lista di liste Attx=Valx, di cui una è
-	member(CongiunzioneAttributi,Descrizione), % la lista CongiunzioneAttributi e
-	soddisfa(Oggetto,CongiunzioneAttributi). % questa soddisfa la lista Att=Val
+classifica(Oggetto,Classe) :- 
+	Classe <== Descrizione, 
+	member(CongiunzioneAttributi,Descrizione), 
+	soddisfa(Oggetto,CongiunzioneAttributi). 
 
 stampa_matrice_di_confusione :-
 	findall(Classe/Oggetto,s(Classe,Oggetto),TestSet),
 	length(TestSet,N),
 	valuta(TestSet,VN,0,VP,0,FN,0,FP,0,NC,0),
-	A is (VP + VN) / (N - NC), % Accuratezza
-	E is 1 - A,		   % Errore
+	A is (VP + VN) / (N - NC), 
+	E is 1 - A,		  
 	write('Test effettuati :'),  writeln(N),
 	write('Test non classificati :'),  writeln(NC),
 	write('Veri Negativi  '), write(VN), write('   Falsi Positivi '), writeln(FP),
@@ -143,22 +118,22 @@ stampa_matrice_di_confusione :-
 
 valuta([],VN,VN,VP,VP,FN,FN,FP,FP,NC,NC).
 valuta([infarto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
-	classifica(Oggetto,infarto), !,      % prevede correttamente l'infarto
+	classifica(Oggetto,infarto), !,     
 	VNA1 is VNA + 1,
 	valuta(Coda,VN,VNA1,VP,VPA,FN,FNA,FP,FPA,NC,NCA).
 valuta([nessun_infarto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
-	classifica(Oggetto,nessun_infarto), !, % prevede correttamente l'assenza di infarto
+	classifica(Oggetto,nessun_infarto), !, 
 	VPA1 is VPA + 1,
 	valuta(Coda,VN,VNA,VP,VPA1,FN,FNA,FP,FPA,NC,NCA).
 valuta([nessun_infarto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
-	classifica(Oggetto,infarto), !,      % prevede erroneamente l'infarto
+	classifica(Oggetto,infarto), !,     
 	FNA1 is FNA + 1,
 	valuta(Coda,VN,VNA,VP,VPA,FN,FNA1,FP,FPA,NC,NCA).
 valuta([deceduto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
-	classifica(Oggetto,nessun_infarto), !, % prevede erroneamente l'assenza di infarto
+	classifica(Oggetto,nessun_infarto), !, 
 	FPA1 is FPA + 1,
 	valuta(Coda,VN,VNA,VP,VPA,FN,FNA,FP,FPA1,NC,NCA).
-valuta([_/_|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :- % non classifica
+valuta([_/_|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :- 
 	NCA1 is NCA + 1,
 	valuta(Coda,VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA1).
 

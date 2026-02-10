@@ -12,16 +12,22 @@ induce_albero( Albero ) :-
 	mostra( Albero ),
 	assert(alb(Albero)).
 
-induce_albero( _, [], null ) :- !.			       
-induce_albero( _, [e(Classe,_)|Esempi], l(Classe)) :-	         
+induce_albero( _, [], null ) :- !.
+induce_albero( _, [e(Classe,_)|Esempi], l(Classe)) :-	        
 	\+ ( member(e(ClassX,_),Esempi), ClassX \== Classe ),!. 
 induce_albero( Attributi, Esempi, t(Attributo,SAlberi) ) :-	 
 	sceglie_attributo( Attributi, Esempi, Attributo), !,     
-	del( Attributo, Attributi, Rimanenti ),			
-	a( Attributo, Valori ),					 
+	del( Attributo, Attributi, Rimanenti ),			 
+	a( Attributo, Valori ),					
 	induce_alberi( Attributo, Valori, Rimanenti, Esempi, SAlberi).
 induce_albero( _, Esempi, l(Classi)) :-                         
 	findall( Classe, member(e(Classe,_),Esempi), Classi).
+
+
+sceglie_attributo( Attributi, Esempi, MigliorAttributo )  :-
+	setof( Disuguaglianza/A,
+	      (member(A,Attributi) , disuguaglianza(Esempi,A,Disuguaglianza)),
+	      [MinorDisuguaglianza/MigliorAttributo|_] ).
 
 
 disuguaglianza( Esempi, Attributo, Dis) :-
@@ -30,13 +36,13 @@ disuguaglianza( Esempi, Attributo, Dis) :-
 
 somma_pesata( _, _, [], Somma, Somma).
 somma_pesata( Esempi, Att, [Val|Valori], SommaParziale, Somma) :-
-	length(Esempi,N),                                            
-	findall( C,						    
+	length(Esempi,N),                                           
+	findall( C,						     
 		 (member(e(C,Desc),Esempi) , soddisfa(Desc,[Att=Val])), 
-		 EsempiSoddisfatti ),				   
+		 EsempiSoddisfatti ),				    
 	length(EsempiSoddisfatti, NVal),			     
 	NVal > 0, !,                                                
-	findall(P,			         
+	findall(P,			          
                 (bagof(1,		           %
                        member(_,EsempiSoddisfatti),
                        L),
@@ -47,7 +53,8 @@ somma_pesata( Esempi, Att, [Val|Valori], SommaParziale, Somma) :-
 	NuovaSommaParziale is SommaParziale + Gini*NVal/N,
 	somma_pesata(Esempi,Att,Valori,NuovaSommaParziale,Somma)
 	;
-	somma_pesata(Esempi,Att,Valori,SommaParziale,Somma). % nessun esempio soddisfa Att = Val
+	somma_pesata(Esempi,Att,Valori,SommaParziale,Somma). 
+
 
 gini(ListaProbabilità,Gini) :-
 	somma_quadrati(ListaProbabilità,0,SommaQuadrati),
@@ -63,6 +70,7 @@ induce_alberi(Att,[Val1|Valori],AttRimasti,Esempi,[Val1:Alb1|Alberi])  :-
 	attval_subset(Att=Val1,Esempi,SottoinsiemeEsempi),
 	induce_albero(AttRimasti,SottoinsiemeEsempi,Alb1),
 	induce_alberi(Att,Valori,AttRimasti,Esempi,Alberi).
+
 
 attval_subset(AttributoValore,Esempi,Sottoinsieme) :-
 	findall(e(C,O),(member(e(C,O),Esempi),soddisfa(O,[AttributoValore])),Sottoinsieme).
@@ -93,12 +101,13 @@ mostratutto([V:T|C],I) :-
 
 % ================================================================================
 
+
 classifica(Oggetto,nc,t(Att,Valori)) :- 
 	member(Att=Val,Oggetto),  
         member(Val:null,Valori). 
 
 classifica(Oggetto,Classe,t(Att,Valori)) :- 
-	member(Att=Val,Oggetto), 
+	member(Att=Val,Oggetto),  
         member(Val:l(Classe),Valori). 
 
 classifica(Oggetto,Classe,t(Att,Valori)) :-
@@ -114,7 +123,7 @@ stampa_matrice_di_confusione :-
 	length(TestSet,N),
 	valuta(Albero,TestSet,VN,0,VP,0,FN,0,FP,0,NC,0),
 	A is (VP + VN) / (N - NC), 
-	E is 1 - A,		  
+	E is 1 - A,		   
 	write('Test effettuati :'),  writeln(N),
 	write('Test non classificati :'),  writeln(NC),
 	write('Veri Negativi  '), write(VN), write('   Falsi Positivi '), writeln(FP),
@@ -124,7 +133,7 @@ stampa_matrice_di_confusione :-
 
 valuta(_,[],VN,VN,VP,VP,FN,FN,FP,FP,NC,NC).           
 valuta(Albero,[infarto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
-	classifica(Oggetto,infarto,Albero), !,      
+	classifica(Oggetto,infarto,Albero), !,     
 	VNA1 is VNA + 1,
 	valuta(Albero,Coda,VN,VNA1,VP,VPA,FN,FNA,FP,FPA,NC,NCA).
 valuta(Albero,[nessun_infarto/Oggetto|Coda],VN,VNA,VP,VPA,FN,FNA,FP,FPA,NC,NCA) :-
